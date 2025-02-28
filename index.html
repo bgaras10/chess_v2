@@ -2,57 +2,52 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <!-- Allow zooming on mobile by removing maximum-scale and user-scalable=no -->
+  <!-- Allow pinch-zoom, etc. -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chess Game</title>
 
-  <!-- If you need the localStorage check, uncomment this script block
-  <script>
-    document.addEventListener("DOMContentLoaded", function() {
-      const user = localStorage.getItem("user");
-      if (!user) {
-        window.location.href = "index.html";  // Redirect if not logged in
-      }
-    });
-  </script>
-  -->
-
   <style>
-    body {
-      background-color: #f0f0f0;
+    /* Make body fill entire screen, remove default margins/padding */
+    html, body {
       margin: 0;
-      padding: 1rem;
+      padding: 0;
+      width: 100%;
+      height: 100%;
       font-family: sans-serif;
+      background-color: #f0f0f0;
+    }
+
+    /* Center content vertically & horizontally */
+    body {
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start;
+      justify-content: center;
     }
 
     h1 {
-      margin-bottom: 1rem;
+      margin: 0.5rem 0;
       text-align: center;
     }
 
     #turnIndicator {
       font-size: 1.2rem;
-      margin-bottom: 1rem;
+      margin-bottom: 0.5rem;
       text-align: center;
     }
 
-    /* 
-      Use min(90vw, 500px) so the board doesn't get huge on large screens.
-      Also maintain a square ratio by making width & height the same.
+    /*
+      The board is 90vmin, so it fills 90% of the smaller side (width or height).
+      This often looks good on desktops. Adjust to 95vmin or 80vmin if needed.
     */
     #chessBoard {
       display: grid;
-      width: min(90vw, 500px);
-      height: min(90vw, 500px);
+      width: 90vmin;
+      height: 90vmin;
       grid-template-columns: repeat(8, 1fr);
       grid-template-rows: repeat(8, 1fr);
       border: 2px solid #333;
       box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
-      margin-bottom: 1rem;
       user-select: none;
     }
 
@@ -62,8 +57,10 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      /* Lower font-size from 8vw to 5vw for a more comfortable fit */
-      font-size: 5vw;
+      /* Scale pieces relative to the board. 
+         90vmin / 8 squares * 0.7 = ~7.875vmin, which is quite big. 
+      */
+      font-size: calc(90vmin / 8 * 0.7);
       cursor: pointer;
       transition: background-color 0.2s ease;
     }
@@ -85,81 +82,49 @@
     }
 
     #status {
-      margin-top: 1rem;
+      margin-top: 0.5rem;
       font-size: 1.2rem;
       font-weight: bold;
       color: #333;
       text-align: center;
     }
-
-    /* Optional: Additional tweaks for very small screens */
-    @media (max-width: 400px) {
-      h1 {
-        font-size: 1rem;
-      }
-      #turnIndicator {
-        font-size: 1rem;
-      }
-      .square {
-        font-size: 6vw; /* Slightly bigger if you prefer on very small phones */
-      }
-    }
   </style>
 </head>
 <body>
+
   <h1>Chess Game</h1>
   <div id="turnIndicator">White to move</div>
   <div id="chessBoard"></div>
   <div id="status"></div>
 
   <script>
-    // We'll represent the board as a 2D array (8x8)
-    // We will store the piece as a single character or empty string.
-    // Then we'll map that to its unicode for display.
-
-    // Unicode pieces:
-    // White: K=\u2654 Q=\u2655 R=\u2656 B=\u2657 N=\u2658 P=\u2659
-    // Black: K=\u265A Q=\u265B R=\u265C B=\u265D N=\u265E P=\u265F
-
+    /* === CHESS LOGIC === */
     let board = [
-      // 8
       ["r", "n", "b", "q", "k", "b", "n", "r"],
-      // 7
       ["p", "p", "p", "p", "p", "p", "p", "p"],
-      // 6
       ["", "", "", "", "", "", "", ""],
-      // 5
       ["", "", "", "", "", "", "", ""],
-      // 4
       ["", "", "", "", "", "", "", ""],
-      // 3
       ["", "", "", "", "", "", "", ""],
-      // 2
       ["P", "P", "P", "P", "P", "P", "P", "P"],
-      // 1
       ["R", "N", "B", "Q", "K", "B", "N", "R"]
     ];
 
-    // sideToMove: 'white' or 'black'
     let sideToMove = 'white';
 
-    // HTML container for the board
     const boardContainer = document.getElementById('chessBoard');
     const statusDiv = document.getElementById('status');
     const turnIndicator = document.getElementById('turnIndicator');
 
-    // We'll keep track of the currently selected square (if any)
     let selectedSquare = null;
     let possibleMoves = [];
 
-    // Generate the board visually
     function createBoard() {
       boardContainer.innerHTML = '';
       for (let row = 0; row < 8; row++) {
         for (let col = 0; col < 8; col++) {
           const square = document.createElement('div');
           square.classList.add('square');
-          // Light/dark squares
           if ((row + col) % 2 === 0) {
             square.classList.add('light');
           } else {
@@ -167,13 +132,10 @@
           }
 
           square.id = `square-${row}-${col}`;
-          // Display the piece using unicode
           let pieceUnicode = pieceToUnicode(board[row][col]);
           square.textContent = pieceUnicode;
 
-          // Attach click handler
           square.addEventListener('click', () => onSquareClick(row, col));
-
           boardContainer.appendChild(square);
         }
       }
@@ -181,14 +143,12 @@
 
     function pieceToUnicode(piece) {
       switch (piece) {
-        // White pieces
         case 'K': return '\u2654';
         case 'Q': return '\u2655';
         case 'R': return '\u2656';
         case 'B': return '\u2657';
         case 'N': return '\u2658';
         case 'P': return '\u2659';
-        // Black pieces
         case 'k': return '\u265A';
         case 'q': return '\u265B';
         case 'r': return '\u265C';
@@ -201,12 +161,9 @@
 
     function onSquareClick(row, col) {
       const piece = board[row][col];
-      // If we have already selected a square, check if we can move there
       if (selectedSquare) {
-        // Check if (row,col) is a valid move
         const valid = possibleMoves.some(m => m.toRow === row && m.toCol === col);
         if (valid) {
-          // Make the move
           makeMove(selectedSquare.row, selectedSquare.col, row, col);
           clearHighlights();
           selectedSquare = null;
@@ -214,7 +171,6 @@
           checkGameStatus();
           updateTurnIndicator();
         } else {
-          // If clicked a different friendly piece, switch selection
           if (isFriendlyPiece(piece, sideToMove)) {
             clearHighlights();
             selectedSquare = { row, col };
@@ -222,22 +178,18 @@
             highlightSquare(row, col);
             highlightMoves(possibleMoves);
           } else {
-            // just clear
             clearHighlights();
             selectedSquare = null;
             possibleMoves = [];
           }
         }
       } else {
-        // No square selected yet
-        // Only select if it's your side's piece
         if (isFriendlyPiece(piece, sideToMove)) {
           selectedSquare = { row, col };
           possibleMoves = getPossibleMoves(row, col);
           highlightSquare(row, col);
           highlightMoves(possibleMoves);
         } else {
-          // do nothing
           return;
         }
       }
@@ -252,10 +204,8 @@
     }
 
     function makeMove(fromRow, fromCol, toRow, toCol) {
-      // Move piece in board array
       board[toRow][toCol] = board[fromRow][fromCol];
       board[fromRow][fromCol] = '';
-      // Switch side to move
       sideToMove = (sideToMove === 'white') ? 'black' : 'white';
       createBoard();
     }
@@ -264,14 +214,8 @@
       turnIndicator.textContent = sideToMove.charAt(0).toUpperCase() + sideToMove.slice(1) + ' to move';
     }
 
-    // We split logic into raw move generation vs. legal move generation.
-    // getRawMoves does not consider check.
-    // getPossibleMoves uses getRawMoves and filters by isLegalMove.
-
     function getPossibleMoves(row, col) {
-      // generate raw moves ignoring check
       const raw = getRawMoves(row, col);
-      // filter out moves that leave our own king in check
       return raw.filter(m => isLegalMove(m.fromRow, m.fromCol, m.toRow, m.toCol));
     }
 
@@ -280,35 +224,25 @@
       if (!piece) return [];
       const lower = piece.toLowerCase();
       switch (lower) {
-        case 'p':
-          return getPawnRawMoves(row, col, piece);
-        case 'r':
-          return getRookRawMoves(row, col, piece);
-        case 'n':
-          return getKnightRawMoves(row, col, piece);
-        case 'b':
-          return getBishopRawMoves(row, col, piece);
-        case 'q':
-          return getQueenRawMoves(row, col, piece);
-        case 'k':
-          return getKingRawMoves(row, col, piece);
-        default:
-          return [];
+        case 'p': return getPawnRawMoves(row, col, piece);
+        case 'r': return getRookRawMoves(row, col, piece);
+        case 'n': return getKnightRawMoves(row, col, piece);
+        case 'b': return getBishopRawMoves(row, col, piece);
+        case 'q': return getQueenRawMoves(row, col, piece);
+        case 'k': return getKingRawMoves(row, col, piece);
+        default:  return [];
       }
     }
 
-    // Pawn raw moves (ignoring check)
     function getPawnRawMoves(row, col, piece) {
       const moves = [];
       const isWhite = (piece === piece.toUpperCase());
-      const direction = isWhite ? -1 : 1; // white moves up, black moves down
-      const startRow = isWhite ? 6 : 1; // starting row for white or black
+      const direction = isWhite ? -1 : 1;
+      const startRow = isWhite ? 6 : 1;
 
-      // Move forward 1
       const forwardRow = row + direction;
       if (isOnBoard(forwardRow, col) && board[forwardRow][col] === '') {
         moves.push({ fromRow: row, fromCol: col, toRow: forwardRow, toCol: col });
-        // Move forward 2 if on starting row
         if (row === startRow) {
           const forward2Row = row + 2 * direction;
           if (isOnBoard(forward2Row, col) && board[forward2Row][col] === '') {
@@ -317,7 +251,6 @@
         }
       }
 
-      // Captures
       const captureLeftCol = col - 1;
       const captureRightCol = col + 1;
 
@@ -424,15 +357,10 @@
       return moves;
     }
 
-    // Basic board boundary check
     function isOnBoard(row, col) {
       return row >= 0 && row < 8 && col >= 0 && col < 8;
     }
 
-    // We'll do a simplified check for isLegalMove by seeing if it leaves your king in check.
-    // 1) Temporarily make the move
-    // 2) Check if your king is in check
-    // 3) revert
     function isLegalMove(fromRow, fromCol, toRow, toCol) {
       const piece = board[fromRow][fromCol];
       const captured = board[toRow][toCol];
@@ -441,46 +369,35 @@
 
       const inCheck = isKingInCheck(sideToMove);
 
-      // revert
       board[fromRow][fromCol] = piece;
       board[toRow][toCol] = captured;
 
       return !inCheck;
     }
 
-    // We check if side's king can be captured by enemy pieces (raw moves)
     function isKingInCheck(side) {
-      // find king
       let kingPos = null;
       for (let r = 0; r < 8; r++) {
         for (let c = 0; c < 8; c++) {
-          if (side === 'white') {
-            if (board[r][c] === 'K') {
-              kingPos = {r, c};
-              break;
-            }
-          } else {
-            if (board[r][c] === 'k') {
-              kingPos = {r, c};
-              break;
-            }
+          if (side === 'white' && board[r][c] === 'K') {
+            kingPos = {r, c};
+            break;
+          }
+          if (side === 'black' && board[r][c] === 'k') {
+            kingPos = {r, c};
+            break;
           }
         }
         if (kingPos) break;
       }
       if (!kingPos) {
-        // no king found? means it's captured? We'll treat as in check.
         return true;
       }
 
-      // The enemy side can be:
       const enemySide = (side === 'white') ? 'black' : 'white';
-
-      // For each enemy piece, generate raw moves. If any can land on the kingPos, side is in check.
       for (let r = 0; r < 8; r++) {
         for (let c = 0; c < 8; c++) {
           if (isFriendlyPiece(board[r][c], enemySide)) {
-            // generate raw moves ignoring check
             const rawMoves = getRawMoves(r, c);
             if (rawMoves.some(m => m.toRow === kingPos.r && m.toCol === kingPos.c)) {
               return true;
@@ -492,19 +409,14 @@
     }
 
     function checkGameStatus() {
-      // check if the sideToMove has any legal move.
-      // if not, either checkmate or stalemate.
       const moves = getAllMoves(sideToMove);
       if (moves.length === 0) {
-        // no moves. check if in check
         if (isKingInCheck(sideToMove)) {
           statusDiv.textContent = `Checkmate! ${sideToMove} is in checkmate.`;
         } else {
           statusDiv.textContent = `Stalemate!`;
         }
       } else {
-        // check if next side is in check?
-        // optionally we can show "Check!" if in check
         if (isKingInCheck(sideToMove)) {
           statusDiv.textContent = "Check!";
         } else {
@@ -552,23 +464,17 @@
       }
     }
 
-    // Simple tests for debugging:
     function runTests() {
       console.log('Running Basic Tests...');
-      // Test 1: initial piece layout
       console.assert(board[0][0] === 'r', 'Test 1A: expected black rook at (0,0)');
       console.assert(board[7][4] === 'K', 'Test 1B: expected white king at (7,4)');
       console.assert(board[1][4] === 'p', 'Test 1C: expected black pawn at (1,4)');
       console.assert(board[6][4] === 'P', 'Test 1D: expected white pawn at (6,4)');
-
-      // Test 2: white pawn moves from (6,0)
       let testMoves = getPossibleMoves(6, 0);
-      console.assert(testMoves.length === 2, 'Test 2: White pawn at (6,0) should have 2 moves initially (one step, two steps).');
-
+      console.assert(testMoves.length === 2, 'Test 2: White pawn at (6,0) should have 2 moves initially');
       console.log('All Basic Tests Completed');
     }
 
-    // Initialize
     createBoard();
     runTests();
   </script>
