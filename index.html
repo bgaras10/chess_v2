@@ -42,12 +42,12 @@
     */
 
     
-    #chessBoard {
+   #chessBoard {
   display: grid;
-  width: 480px;  /* Fixed width */
-  height: 480px; /* Fixed height */
-  grid-template-columns: repeat(8, 60px); /* 60px per square */
-  grid-template-rows: repeat(8, 60px);
+  width: 480px;  /* Fixed board width */
+  height: 480px; /* Fixed board height */
+  grid-template-columns: repeat(8, 1fr); 
+  grid-template-rows: repeat(8, 1fr);
   border: 2px solid #333;
   box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
   user-select: none;
@@ -59,9 +59,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 40px;  /* Fixed font size */
+  font-size: 36px;  /* Fixed font size for pieces */
   cursor: pointer;
   transition: background-color 0.2s ease;
+  overflow: hidden; /* Prevents layout shifting */
+  text-align: center;
+  line-height: 60px; /* Ensures pieces are vertically centered */
 }
 
 
