@@ -40,6 +40,8 @@
       The board is 90vmin, so it fills 90% of the smaller side (width or height).
       This often looks good on desktops. Adjust to 95vmin or 80vmin if needed.
     */
+
+    /*
     #chessBoard {
       display: grid;
       width: 60vmin;
@@ -50,6 +52,18 @@
       box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
       user-select: none;
     }
+    */
+
+    #chessBoard {
+  display: grid;
+  width: 480px;  /* Fixed width */
+  height: 480px; /* Fixed height */
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  border: 2px solid #333;
+  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+  user-select: none;
+}
 
     .square {
       width: 100%;
